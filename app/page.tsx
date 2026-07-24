@@ -34,9 +34,9 @@ export default async function Home() {
               {user ? `Welcome back, ${name || 'User'}!` : 'Find your next dream job'}
             </h1>
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              {user 
-                ? role === 'employer' 
-                  ? 'Manage your job postings, review applications, and find the perfect candidate.' 
+              {user
+                ? role === 'employer'
+                  ? 'Manage your job postings, review applications, and find the perfect candidate.'
                   : 'Track your applications, browse new opportunities, and land your dream job.'
                 : 'Discover thousands of opportunities from top companies around the world. Whether you\'re looking for remote work or a local office, we have something for you.'}
             </p>
