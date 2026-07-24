@@ -17,12 +17,28 @@ export async function submitApplication(prevState: any, formData: FormData) {
   const jobId = formData.get('job_id') as string
   const file = formData.get('resume') as File
 
-  if (!jobId || !file || file.size === 0) {
-    return { error: 'A valid resume PDF is required.' }
+  console.log('--- DEBUG ---')
+  console.log('jobId:', jobId)
+  console.log('file:', file)
+  console.log('file size:', file?.size)
+  console.log('file type:', file?.type)
+  console.log('file name:', file?.name)
+  console.log('-------------')
+
+  if (!jobId) {
+    return { error: 'Error: job_id is missing from the form data.' }
+  }
+
+  if (!file) {
+    return { error: 'Error: No file was received by the server.' }
+  }
+
+  if (file.size === 0) {
+    return { error: 'Error: The uploaded file is empty (0 bytes) or was not sent as a File object. Make sure you refreshed the page.' }
   }
 
   if (file.type !== 'application/pdf') {
-    return { error: 'Only PDF resumes are accepted.' }
+    return { error: `Error: Only PDF resumes are accepted. Received type: ${file.type}` }
   }
 
   // 1. Upload to Supabase Storage
@@ -62,6 +78,6 @@ export async function submitApplication(prevState: any, formData: FormData) {
 
   revalidatePath(`/jobs/${jobId}`)
   revalidatePath('/candidate')
-  
+
   return { success: true, message: 'Application submitted successfully!' }
 }

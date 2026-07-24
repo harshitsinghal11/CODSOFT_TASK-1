@@ -22,9 +22,9 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
   }
 
   return (
-    <form action={formAction} className="mt-6 border-t border-gray-200 pt-6">
+    <form action={formAction} encType="multipart/form-data" className="mt-6 border-t border-gray-200 pt-6">
       <h3 className="text-lg font-medium text-gray-900 mb-4">Apply for this position</h3>
-      
+
       {state?.error && (
         <div className="mb-4 rounded-md bg-red-50 p-4">
           <div className="text-sm text-red-700">{state.error}</div>
@@ -32,7 +32,7 @@ export default function ApplicationForm({ jobId }: { jobId: string }) {
       )}
 
       <input type="hidden" name="job_id" value={jobId} />
-      
+
       <div className="mb-4">
         <label htmlFor="resume" className="block text-sm font-medium text-gray-700">
           Upload Resume (PDF only)
