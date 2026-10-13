@@ -21,6 +21,11 @@ export default function SignupPage() {
               <div className="text-sm text-red-700">{state.error}</div>
             </div>
           )}
+          {state?.success && (
+            <div className="rounded-md bg-green-50 p-4 border border-green-200">
+              <div className="text-sm font-medium text-green-800">{state.success}</div>
+            </div>
+          )}
           
           <div className="space-y-4">
             <div>

@@ -41,41 +41,53 @@ ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 -- ==========================================
 
 -- USERS POLICIES
--- Anyone can view users (so employers can see candidate names)
 CREATE POLICY "Users are viewable by everyone." ON public.users FOR SELECT USING (true);
--- Users can insert their own profile during signup
 CREATE POLICY "Users can insert their own profile." ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
--- Users can update their own profile
 CREATE POLICY "Users can update own profile." ON public.users FOR UPDATE USING (auth.uid() = id);
 
+-- Trigger to automatically create profile in public.users when a user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.users (id, email, name, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'candidate')
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- JOBS POLICIES
--- Anyone can view jobs
 CREATE POLICY "Jobs are viewable by everyone." ON public.jobs FOR SELECT USING (true);
--- Only authenticated users with the 'employer' role can create jobs
 CREATE POLICY "Employers can insert jobs." ON public.jobs FOR INSERT WITH CHECK (
   auth.uid() = employer_id AND 
   EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'employer')
 );
--- Employers can only update/delete their own jobs
 CREATE POLICY "Employers can update their own jobs." ON public.jobs FOR UPDATE USING (auth.uid() = employer_id);
 CREATE POLICY "Employers can delete their own jobs." ON public.jobs FOR DELETE USING (auth.uid() = employer_id);
 
 -- APPLICATIONS POLICIES
--- Candidates can view their own applications
 CREATE POLICY "Candidates can view their own applications." ON public.applications FOR SELECT USING (auth.uid() = candidate_id);
--- Employers can view applications for their jobs
 CREATE POLICY "Employers can view applications for their jobs." ON public.applications FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.jobs WHERE jobs.id = applications.job_id AND jobs.employer_id = auth.uid())
 );
--- Candidates can apply to jobs (insert applications)
 CREATE POLICY "Candidates can insert applications." ON public.applications FOR INSERT WITH CHECK (
   auth.uid() = candidate_id AND 
   EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'candidate')
 );
 
-
--- Enable RLS on storage.objects just in case it isn't
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- ==========================================
+-- STORAGE POLICIES (Note: ALTER TABLE removed)
+-- ==========================================
 
 -- Allow authenticated users (Candidates) to upload resumes
 CREATE POLICY "Candidates can upload resumes"

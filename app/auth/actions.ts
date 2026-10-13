@@ -57,22 +57,27 @@ export async function signup(prevState: any, formData: FormData) {
   }
 
   if (authData.user) {
-    // Insert into our custom public.users table
-    const { error: dbError } = await supabase.from('users').insert({
-      id: authData.user.id,
-      email,
-      name,
-      role,
-    })
+    if (authData.session) {
+      // Attempt upsert in case the Postgres trigger is not configured
+      const { error: dbError } = await supabase.from('users').upsert({
+        id: authData.user.id,
+        email,
+        name,
+        role,
+      }, { onConflict: 'id' })
 
-    if (dbError) {
-      console.error('Error inserting into public.users:', dbError)
-      return { error: 'User created in auth, but failed to save profile.' }
+      if (dbError && dbError.code !== '23505' && dbError.code !== '42501') {
+        console.error('Error inserting into public.users:', dbError)
+      }
+    } else {
+      // If email confirmation is enabled in Supabase, session is null until confirmed
+      return {
+        success: 'Account created! Please check your email to confirm your account (or disable "Confirm email" in Supabase Auth settings to log in immediately).',
+      }
     }
   }
 
   revalidatePath('/', 'layout')
-  // We'll redirect to home after successful signup
   redirect('/')
 }
 
